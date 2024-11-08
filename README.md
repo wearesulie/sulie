@@ -93,6 +93,7 @@ print(f"Job status: {fine_tune_job.status}")
 |---------------|-----------------------------------------------------|---------|
 | `dataset`     | A `Dataset` or `pd.DataFrame` with time series data.| Required|
 | `target`      | Target variable for optimization.                   | Required|
+| `group_by`    | Name of the column to group the DataFrame series by.| `None`  |
 | `description` | Description of the fine-tuning job.                 | `None`  |
 
 Once fine-tuning completes, the model is automatically deployed and available for forecasting.
@@ -117,6 +118,9 @@ print(f"Available datasets: {datasets}")
 - **Upload**: Store and version your data for easy access and updates.
 - **List**: Retrieve a list of uploaded datasets.
 - **Update**: Append or overwrite data for an existing dataset.
+
+> [!NOTE] 
+> Datasets are an optional feature. To make forecasts or even fine-tune a foundation model, you may also pass a Pandas `DataFrame` to the `forecast` and `fine_tune` functions.
 
 ### 4. Forecasting with Custom Models
 Fine-tuned models can be selected for new forecasts using `list_custom_models` or `get_model`.
@@ -145,7 +149,7 @@ print(forecast_custom)
 ---
 
 ### Additional Resources
-- **[API Documentation](https://docs.sulie.com)**: Full documentation with detailed usage.
-- **[Forecasting Guide](https://docs.sulie.com/capabilities/forecasting)**: Detailed parameters for Mimosa forecasting.
-- **[Fine-Tuning Guide](https://docs.sulie.com/capabilities/fine-tuning)**: Options and tuning customization.
-- **[Support](https://support.sulie.com)**: Assistance and feedback on the SDK.
+- **[API Documentation](https://docs.sulie.co)**: Full documentation with detailed usage.
+- **[Forecasting Guide](https://docs.sulie.co/capabilities/forecasting)**: Detailed parameters for Mimosa forecasting.
+- **[Fine-Tuning Guide](https://docs.sulie.co/capabilities/fine-tuning)**: Options and tuning customization.
+- **[Support](mailto:support@sulie.co)**: Assistance and feedback on the SDK.

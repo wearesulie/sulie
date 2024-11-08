@@ -10,7 +10,7 @@ from pandas.tseries.frequencies import to_offset
 from typing import Optional, List, Dict, Any, Literal, Union
 from tqdm import tqdm
 
-__version__ = "1.0.1"
+__version__ = "1.0.3"
 
 logger = logging.getLogger("sulie")
 
@@ -189,6 +189,7 @@ class Sulie:
             self,
             dataset: Union["Dataset", pd.DataFrame],
             target: str,
+            group_by: Optional[str] = None,
             description: Optional[str] = None
         ) -> "FineTuneJob":
         """Run a model fine tuning job.
@@ -196,11 +197,15 @@ class Sulie:
         Args:
             dataset (Dataset): Dataset or pd.Dataframe.
             target (str): Name of the target value to optimise for.
+            group_by (str): Name of the column to group the series by.
             description (str): Description of the fine-tune job.
 
         Returns:
             FineTuneJob: Fine-tuning job.
         """
+        if isinstance(dataset, Dataset) and dataset.empty is True:
+            dataset.load()
+
         if target not in dataset.columns:
             raise KeyError(f"Target column {target} not found in dataset")
 
@@ -221,7 +226,13 @@ class Sulie:
         )
 
         # Start the fine-tune job
-        job = FineTuneJob.fit(self, train_dataset.id, target, description)
+        job = FineTuneJob.fit(
+            client=self,
+            dataset_id=train_dataset.id,
+            target=target,
+            group_by=group_by,
+            description=description
+        )
         return job
     
     def list_fine_tuning_jobs(self) -> List["FineTuneJob"]:
@@ -403,9 +414,11 @@ class Dataset(pd.DataFrame):
         buffer.seek(0)
 
         df = pd.read_parquet(buffer)
+        for column in df.columns:
+            self[column] = df[column]
+        
         self.columns = df.columns
-        self.loc[:, :] = df
-
+    
         return df
 
     def upload(self, df: pd.DataFrame, mode: _UploadModes = "append"):
@@ -789,6 +802,7 @@ class FineTuneJob:
             client: Sulie, 
             dataset_id: str, 
             target: str, 
+            group_by: Optional[str] = None,
             description: Optional[str] = None
         ) -> "FineTuneJob":
         """Fit a foundation time series model.
@@ -797,6 +811,7 @@ class FineTuneJob:
             client (Sulie): API client.
             dataset_id (str): ID of the dataset the model will be fitted on.
             target (str): Name of the target value to forecast for.
+            group_by (str): Name of the column to group the series by.
             description (str): Description of the fine-tune job.
 
         Returns:
@@ -806,7 +821,8 @@ class FineTuneJob:
         data = {
             "dataset_id": dataset_id,
             "target": target,
-            "description": description
+            "description": description,
+            "group_by": group_by
         }
         r = client._api_request("/tune", method="post", json=data)
         r.raise_for_status()
@@ -839,4 +855,3 @@ class FineTuneJob:
         r = client._api_request(endpoint, method="get")
         r.raise_for_status()
         return [FineTuneJob(client, **job) for job in r.json()]
-
