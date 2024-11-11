@@ -145,7 +145,7 @@ print(forecast_custom)
 ---
 
 ### Additional Resources
-- **[API Documentation](https://docs.sulie.com)**: Full documentation with detailed usage.
-- **[Forecasting Guide](https://docs.sulie.com/capabilities/forecasting)**: Detailed parameters for Mimosa forecasting.
-- **[Fine-Tuning Guide](https://docs.sulie.com/capabilities/fine-tuning)**: Options and tuning customization.
-- **[Support](https://support.sulie.com)**: Assistance and feedback on the SDK.
+- **[API Documentation](https://docs.sulie.co)**: Full documentation with detailed usage.
+- **[Forecasting Guide](https://docs.sulie.co/capabilities/forecasting)**: Detailed parameters for Mimosa forecasting.
+- **[Fine-Tuning Guide](https://docs.sulie.co/capabilities/fine-tuning)**: Options and tuning customization.
+- **[Support](mailto:support@sulie.co)**: Assistance and feedback on the SDK.
