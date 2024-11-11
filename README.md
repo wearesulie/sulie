@@ -1,6 +1,6 @@
-### Sulie - Advanced Time Series Forecasting with Mimosa Foundation Model
+### Sulie - Managed Time Series Forecasting with Mimosa Foundation Model
 
-The **Sulie SDK** offers seamless integration with the Sulie platform for advanced time series forecasting powered by **Mimosa**—a transformer-based foundation model optimized specifically for time series data. Mimosa provides high accuracy for **zero-shot forecasting** and **automatic fine-tuning**, enabling tailored forecasts without extensive pre-training.
+The **Sulie SDK** offers seamless integration with the Sulie platform for advanced time series forecasting powered by **Mimosa**—a transformer-based foundation model optimized specifically for time series data. Mimosa provides high accuracy for **zero-shot forecasting** and **automatic fine-tuning**, enabling tailored forecasts without extensive pre-training. From deployment to scaling, we handle the MLOps heavy lifting, so you can focus on making use of the forecasts.
 
 ## Getting Started
 
@@ -145,7 +145,7 @@ print(forecast_custom)
 ---
 
 ### Additional Resources
-- **[API Documentation](https://docs.sulie.com)**: Full documentation with detailed usage.
-- **[Forecasting Guide](https://docs.sulie.com/capabilities/forecasting)**: Detailed parameters for Mimosa forecasting.
-- **[Fine-Tuning Guide](https://docs.sulie.com/capabilities/fine-tuning)**: Options and tuning customization.
-- **[Support](https://support.sulie.com)**: Assistance and feedback on the SDK.
+- **[API Documentation](https://docs.sulie.co)**: Full documentation with detailed usage.
+- **[Forecasting Guide](https://docs.sulie.co/capabilities/forecasting)**: Detailed parameters for Mimosa forecasting.
+- **[Fine-Tuning Guide](https://docs.sulie.co/capabilities/fine-tuning)**: Options and tuning customization.
+- **[Support](mailto:support@sulie.co)**: Assistance and feedback on the SDK.
