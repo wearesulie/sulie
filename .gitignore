@@ -5,3 +5,4 @@ sulie.egg-info/
 __pycache__/
 **/__pycache__
 environment.yml
+app.py
