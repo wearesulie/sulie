@@ -10,7 +10,7 @@ from pandas.tseries.frequencies import to_offset
 from typing import Optional, List, Dict, Any, Literal, Union
 from tqdm import tqdm
 
-__version__ = "1.0.1"
+__version__ = "1.0.4"
 
 logger = logging.getLogger("sulie")
 
@@ -678,7 +678,7 @@ class Model:
             if n_rows is not None:
                 arr = arr[-n_rows:]
 
-            r = self._call("forecast", arr, **kwargs)
+            r = self._call("forecast", arr, horizon, **kwargs)
             return r
 
     def _resample_dataset(
@@ -839,4 +839,3 @@ class FineTuneJob:
         r = client._api_request(endpoint, method="get")
         r.raise_for_status()
         return [FineTuneJob(client, **job) for job in r.json()]
-
