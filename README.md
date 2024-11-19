@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-bw-logo.png" alt="sulie-logo" width="250">
+  <img src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-bw-sign.svg" alt="sulie-logo" width="250">
 </p>
 
 <p align="center">
