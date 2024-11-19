@@ -1,6 +1,38 @@
-### Sulie - Managed Time Series Forecasting with Mimosa Foundation Model
 
-The **Sulie SDK** offers seamless integration with the Sulie platform for advanced time series forecasting powered by **Mimosa**—a transformer-based foundation model optimized specifically for time series data. Mimosa provides high accuracy for **zero-shot forecasting** and **automatic fine-tuning**, enabling tailored forecasts without extensive pre-training. From deployment to scaling, we handle the MLOps heavy lifting, so you can focus on making use of the forecasts.
+<p align="center">
+  <img src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-bw-logo.png" alt="sulie-logo" width="250">
+</p>
+
+<p align="center">
+  <a href="https://docs.sulie.co">
+    <img src="https://img.shields.io/badge/docs-mintlify-blue" alt="docs_badge">
+  </a>
+  <a href="https://pypi.org/project/sulie/">
+    <img src="https://img.shields.io/pypi/v/sulie.svg" alt="PyPI Badge">
+  </a>
+</p>
+
+### Sulie - Foundation Models for Time-Series Forecasting
+
+Sulie offers cutting-edge foundation models for time series forecasting, enabling accurate, zero-shot predictions with minimal setup. Our transformer-based models automate the process, eliminating the need for manual training and complex configurations. 
+
+<p align="center">
+    <a href="https://docs.sulie.co">Documentation</a>
+    ·
+    <a href="https://github.com/wearesulie/sulie/issues/new">Report Bug</a>
+    ·
+  <a href="https://join.slack.com/t/sulie-community/shared_invite/zt-2tpeh8opw-vFbpmTrckMWlcQ2OvLCTXA">Join Our Slack</a>
+    ·
+    <a href="https://twitter.com/wearesulie">Twitter</a>
+  </p>
+
+## Features
+
+* __Zero-Shot Forecasting__: Obtain precise forecasts instantly with our foundation model, without requiring training or preprocessing of historical data.
+* __Auto Fine-Tuning__: Enhance model performance with a single API call. We manage the entire training pipeline, providing transparency into model selection and metrics.
+* __Covariates Support__ (Enterprise): Conduct multivariate forecasting by incorporating dynamic and static covariates with no feature engineering needed.
+* __Managed Infrastructure__: Focus on forecasting as we manage all aspects of deployment, scaling, and maintenance seamlessly.
+* __Centralized Datasets__: Push time series data continuously through our Python SDK, creating a centralized, versioned repository accessible across your organization.
 
 ## Getting Started
 
