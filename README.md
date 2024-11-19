@@ -1,7 +1,11 @@
 
-<p align="center">
-  <img src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-bw-sign.svg" alt="sulie-logo" width="250">
-</p>
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-icon-white.svg">
+    <img alt="Sulie logo" src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-bw-sign.svg" width="50%">
+  </picture>
+</div>
+
 
 <p align="center">
   <a href="https://docs.sulie.co">
