@@ -28,7 +28,7 @@ Sulie offers cutting-edge foundation models for time series forecasting, enablin
   <a href="https://join.slack.com/t/sulie-community/shared_invite/zt-2tpeh8opw-vFbpmTrckMWlcQ2OvLCTXA">Join Our Slack</a>
     ·
     <a href="https://twitter.com/wearesulie">Twitter</a>
-  </p>
+</p>
 
 <div align="center"><img src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-github-demo.gif" width="60%" ></div>
 
