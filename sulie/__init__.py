@@ -11,15 +11,7 @@ from pandas.tseries.frequencies import to_offset
 from typing import Optional, List, Dict, Any, Literal, Union
 from tqdm import tqdm
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-__version__ = "1.0.3"
-=======
-__version__ = "1.0.5"
->>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
-=======
-__version__ = "1.0.5"
->>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
+__version__ = "1.0.6"
 
 logger = logging.getLogger("sulie")
 
@@ -311,23 +303,10 @@ class Sulie:
 
         # Start the fine-tune job
         job = FineTuneJob.fit(
-<<<<<<< HEAD
-<<<<<<< HEAD
-            client=self,
-            dataset_id=train_dataset.id,
-            target=target,
-            group_by=group_by,
-=======
-=======
->>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
             client=self, 
             dataset_id=train_dataset.id, 
             target=target, 
             group_by=group_by, 
-<<<<<<< HEAD
->>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
-=======
->>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
             description=description
         )
         return job
@@ -1053,15 +1032,7 @@ class FineTuneJob:
             client (Sulie): API client.
             dataset_id (str): ID of the dataset the model will be fitted on.
             target (str): Name of the target value to forecast for.
-<<<<<<< HEAD
-<<<<<<< HEAD
-            group_by (str): Name of the column to group the series by.
-=======
             group_by (str): Name of the series to group the dataset by.
->>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
-=======
-            group_by (str): Name of the series to group the dataset by.
->>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
             description (str): Description of the fine-tune job.
 
         Returns:
@@ -1104,12 +1075,4 @@ class FineTuneJob:
         endpoint = "/tune"
         r = client._api_request(endpoint, method="get")
         r.raise_for_status()
-<<<<<<< HEAD
-<<<<<<< HEAD
         return [FineTuneJob(client, **job) for job in r.json()]
-=======
-        return [FineTuneJob(client, **job) for job in r.json()]
->>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
-=======
-        return [FineTuneJob(client, **job) for job in r.json()]
->>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
