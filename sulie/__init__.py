@@ -11,7 +11,7 @@ from pandas.tseries.frequencies import to_offset
 from typing import Optional, List, Dict, Any, Literal, Union
 from tqdm import tqdm
 
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 
 logger = logging.getLogger("sulie")
 
@@ -279,6 +279,9 @@ class Sulie:
         Returns:
             FineTuneJob: Fine-tuning job.
         """
+        if isinstance(dataset, Dataset) and dataset.empty is True:
+            dataset.load()
+
         if target not in dataset.columns:
             raise KeyError(f"Target column {target} not found in dataset")
 
@@ -487,9 +490,11 @@ class Dataset(pd.DataFrame):
         buffer.seek(0)
 
         df = pd.read_parquet(buffer)
+        for column in df.columns:
+            self[column] = df[column]
+        
         self.columns = df.columns
-        self.loc[:, :] = df
-
+    
         return df
 
     def upload(self, df: pd.DataFrame, mode: _UploadModes = "append"):
