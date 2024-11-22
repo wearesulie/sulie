@@ -20,6 +20,8 @@
 
 Sulie offers cutting-edge foundation models for time series forecasting, enabling accurate, **zero-shot predictions** with minimal setup. Our transformer-based models automate the process, eliminating the need for manual training and complex configurations. 
 
+<div align="center"><img src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-github-demo.gif" width="60%"></div>
+</br>
 <p align="center">
     <a href="https://docs.sulie.co">Documentation</a>
     ·
@@ -30,7 +32,6 @@ Sulie offers cutting-edge foundation models for time series forecasting, enablin
     <a href="https://twitter.com/wearesulie">Twitter</a>
 </p>
 
-<div align="center"><img src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-github-demo.gif" width="60%" ></div>
 
 ## 🔥 Features
 
