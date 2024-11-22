@@ -30,7 +30,9 @@ Sulie offers cutting-edge foundation models for time series forecasting, enablin
     <a href="https://twitter.com/wearesulie">Twitter</a>
 </p>
 
-![demo](https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-github-demo.gif)
+<p align="center">
+  <img src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/github-demo-optimised.gif" alt="Sulie Demo" width="80%" />
+</p>
 
 
 ## 🔥 Features
