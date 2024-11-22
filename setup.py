@@ -3,13 +3,14 @@ from setuptools import setup, find_packages
 
 setup(
     name="sulie",
-    version="1.0.3",
+    version="1.0.6",
     packages=find_packages(),
     install_requires=[
         "requests",
         "pandas",
         "pyarrow",
-        "tqdm"
+        "tqdm",
+        "matplotlib"
     ],
     extras_require={},
     author="Dominik Safaric",

@@ -1,8 +1,44 @@
-### Sulie - Advanced Time Series Forecasting with Mimosa Foundation Model
 
-The **Sulie SDK** offers seamless integration with the Sulie platform for advanced time series forecasting powered by **Mimosa**—a transformer-based foundation model optimized specifically for time series data. Mimosa provides high accuracy for **zero-shot forecasting** and **automatic fine-tuning**, enabling tailored forecasts without extensive pre-training.
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-icon-white.svg">
+    <img alt="Sulie logo" src="https://y1bix39g-cdn-default.s3.us-east-1.amazonaws.com/assets/sulie-bw-sign.svg" width="50%">
+  </picture>
+</div>
 
-## Getting Started
+
+<p align="center">
+  <a href="https://docs.sulie.co">
+    <img src="https://img.shields.io/badge/docs-mintlify-blue" alt="docs_badge">
+  </a>
+  <a href="https://pypi.org/project/sulie/">
+    <img src="https://img.shields.io/pypi/v/sulie.svg" alt="PyPI Badge">
+  </a>
+</p>
+
+### Sulie - Foundation Models for Time-Series Forecasting
+
+Sulie offers cutting-edge foundation models for time series forecasting, enabling accurate, **zero-shot predictions** with minimal setup. Our transformer-based models automate the process, eliminating the need for manual training and complex configurations. 
+
+<p align="center">
+    <a href="https://docs.sulie.co">Documentation</a>
+    ·
+    <a href="https://github.com/wearesulie/sulie/issues/new">Report Bug</a>
+    ·
+  <a href="https://join.slack.com/t/sulie-community/shared_invite/zt-2tpeh8opw-vFbpmTrckMWlcQ2OvLCTXA">Join Our Slack</a>
+    ·
+    <a href="https://twitter.com/wearesulie">Twitter</a>
+  </p>
+
+## 🔥 Features
+
+* __Zero-Shot Forecasting__: Obtain precise forecasts instantly with our foundation model, without requiring training or preprocessing of historical data.
+* __Auto Fine-Tuning__: Enhance model performance with a single API call. We manage the entire training pipeline, providing transparency into model selection and metrics.
+* __Covariates Support__ (Enterprise): Conduct multivariate forecasting by incorporating dynamic and static covariates with no feature engineering needed.
+* __Managed Infrastructure__: Focus on forecasting as we manage all aspects of deployment, scaling, and maintenance seamlessly.
+* __Centralized Datasets__: Push time series data continuously through our Python SDK, creating a centralized, versioned repository accessible across your organization.
+
+## 🚀 Getting Started
 
 To begin using the Sulie SDK, you’ll need an API key, which can be generated from the **Sulie Dashboard**:
 
@@ -13,12 +49,12 @@ To begin using the Sulie SDK, you’ll need an API key, which can be generated f
 
 With your API key ready, you’re set to start forecasting.
 
-## Installation
+## ⚙️ Installation
 
 To install the Sulie SDK, simply run:
 
 ```bash
-pip install sulie
+pip install sulie==1.0.6
 ```
 
 ## Quick Start Example
@@ -32,7 +68,7 @@ from sulie import Sulie
 client = Sulie(api_key="YOUR_API_KEY")
 ```
 
-## Features
+## ⚡️ Features
 
 ### 1. Forecasting with Mimosa
 Generate accurate time series forecasts using Mimosa’s **zero-shot inference** capabilities. This approach is ideal when you need fast, reliable predictions without training the model.
@@ -59,6 +95,15 @@ forecast = client.forecast(
 )
 print(forecast)
 ```
+
+The `Forecast` object includes three lists: `low`, `median`, and `high`, corresponding to different certainty levels in the predictions. These help you understand the range of possible outcomes, from conservative to optimistic.
+
+You can also visualize the forecasts directly by calling the plot function:
+```python
+forecast.plot()
+```
+
+This quickly generates a chart showing the forecast ranges, making it easy to spot trends and variability in the results. Perfect for a fast, clear analysis.
 
 #### Forecasting Parameters
 
@@ -148,7 +193,7 @@ print(forecast_custom)
 
 ---
 
-### Additional Resources
+### 📚 Additional Resources
 - **[API Documentation](https://docs.sulie.co)**: Full documentation with detailed usage.
 - **[Forecasting Guide](https://docs.sulie.co/capabilities/forecasting)**: Detailed parameters for Mimosa forecasting.
 - **[Fine-Tuning Guide](https://docs.sulie.co/capabilities/fine-tuning)**: Options and tuning customization.

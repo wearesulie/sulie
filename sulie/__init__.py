@@ -6,11 +6,16 @@ import os
 import pandas as pd
 import requests
 import uuid
+import matplotlib.pyplot as plt
 from pandas.tseries.frequencies import to_offset
 from typing import Optional, List, Dict, Any, Literal, Union
 from tqdm import tqdm
 
+<<<<<<< HEAD
 __version__ = "1.0.3"
+=======
+__version__ = "1.0.5"
+>>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
 
 logger = logging.getLogger("sulie")
 
@@ -35,6 +40,50 @@ _UPGRADE_PLAN = 6754
 
 # Supported dataset upload types
 _UploadModes = Literal["append", "overwrite"]
+
+
+def weighted_quantile_loss(
+        y_true: np.ndarray, 
+        y_pred: np.ndarray, 
+        quantiles: List[float]
+    ) -> float:
+    """Calculate the Weighted Quantile Loss (WQL) for a set of predictions.
+
+    Args:
+        y_true (np.ndarray): Actual values.
+        y_pred (np.ndarray): Predicted values.
+        quantiles (list): List of quantiles to calculate.
+
+    Returns:
+        float: Weighted Quantile Loss.
+    """
+    losses = []
+    for q in quantiles:
+        errors = y_true - y_pred
+        loss = np.maximum(q * errors, (q - 1) * errors)
+        losses.append(loss.mean())
+    return sum(losses) / len(quantiles)
+
+
+def wape(actual: np.ndarray, predicted: np.ndarray) -> float:
+    """Calculate Weighted Absolute Percentage Error (WAPE).
+    
+    Args:
+        actual (array-like): Array of actual values
+        predicted (array-like): Array of predicted values
+    
+    Returns:
+        float: WAPE value as a percentage
+    """
+    if len(actual) != len(predicted):
+        raise ValueError("Actual and predicted arrays must have the same length")
+        
+    if np.sum(np.abs(actual)) == 0:
+        raise ValueError("Sum of actual values cannot be zero")
+    
+    wape = np.sum(np.abs(actual - predicted)) / np.sum(np.abs(actual)) * 100
+    
+    return wape
 
 
 class Sulie:
@@ -127,6 +176,37 @@ class Sulie:
         """
         return Model.get(self, model_name)
 
+    def evaluate(
+            self, 
+            arr: List[Union[float, int]],
+            horizon: int = 30,
+            context_length: int = 512,
+            metric: Literal["WQL", "WAPE"] = "WQL",
+            aggr_func: Literal["mean", "median"] = "mean",
+            iterations: int = 100,
+            model: "Model" = None
+        ) -> float:
+        """Evaluate the model's performance on a user-provided dataset.
+
+        This method assesses the model using a specified evaluation metric 
+        by applying sliding windows to randomly shuffle the data. The result 
+        is calculated based on either Weighted Quantile Loss (WQL) or 
+        Weighted Absolute Percentage Error (WAPE).
+
+        Args:
+            arr (list): The input time series dataset to evaluate.
+            horizon (int): Prediction horizon length.
+            context_length (int): Time series data context length.
+            metric (Literal["WQL", "WAPE"]): Name of the metric.
+            aggr_func (Literal["mean", "median"]): Metric aggregation function.
+            iterations (int): Number of evaluation iterations.
+            model (Model): Default or custom model to evaluate its performance.
+        """
+        model: Model = model or Model(self)
+        args = arr, horizon, context_length, metric, aggr_func, iterations
+        r = model.evaluate(*args)
+        return r
+
     def forecast(
             self, 
             dataset: Union["Dataset", pd.DataFrame],
@@ -139,7 +219,7 @@ class Sulie:
             n_rows: int = None,
             model: "Model" = None,
             **kwargs
-        ) -> List[List[float]]:
+        ) -> Union["Forecast", List["Forecast"]]:
         """Forecast using the time series foundation model.
         
         Args:
@@ -227,10 +307,17 @@ class Sulie:
 
         # Start the fine-tune job
         job = FineTuneJob.fit(
+<<<<<<< HEAD
             client=self,
             dataset_id=train_dataset.id,
             target=target,
             group_by=group_by,
+=======
+            client=self, 
+            dataset_id=train_dataset.id, 
+            target=target, 
+            group_by=group_by, 
+>>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
             description=description
         )
         return job
@@ -562,7 +649,71 @@ class _DatasetUpload:
         endpoint = f"/datasets/{dataset_id}/uploads"
         r = client._api_request(endpoint, "post", json=body)
         return r.json()
-    
+
+
+class Forecast:
+
+    def __init__(
+            self, 
+            context: List[Union[int, float]], 
+            low: List[float], 
+            median: List[float], 
+            high: List[float]
+        ):
+        """Initialize a Forecast object.
+        
+        Args:
+            context (list): Input time series data.
+            low (list): Lower uncertainty bound, 0.1 percentile.
+            median (list): Central tendency forecast, median.
+            high (list): Upper uncertainty bound, 0.9 percentile.
+        """
+        self.context = context
+        self.low = low
+        self.median = median
+        self.high = high
+
+    @property
+    def __result(self):
+        return [self.low, self.median, self.high]
+
+    def __getitem__(self, index):
+        return self.__result[index]
+
+    def __len__(self):
+        return len(self.__result)
+
+    def __repr__(self):
+        return repr(self.__result)
+
+    def __str__(self):
+        return str(self.__result)
+
+    def plot(self, height: int = 4, width: int = 8):
+        """Display time series values, predicted forecasts, and optional 
+        confidence intervals.
+        
+        Args:
+            height (int): Plot height, default 4.
+            width (int): Plot width, default 8.
+        """
+        context_size = len(self.context)
+        horizon_length = len(self.median)
+
+        indices = range(context_size, context_size + horizon_length)
+
+        plt.figure(figsize=(width, height))
+
+        plt.plot(self.context, color="royalblue", label="Historical data")
+        plt.plot(indices, self.median, color="green", label="Median forecast")
+        
+        args = indices, self.low, self.high
+        plt.fill_between(*args, color="tomato", alpha=0.3, label="80% interval")
+
+        plt.legend()
+        plt.grid()
+        plt.show()
+
 
 class Model:
 
@@ -618,10 +769,87 @@ class Model:
         
         r.raise_for_status()
         return Model(client, model_name)
+    
+    def evaluate(
+            self, 
+            arr: List[Union[float, int]],
+            horizon: int = 30,
+            context_length: int = 512,
+            metric: Literal["WQL", "WAPE"] = "WQL",
+            aggr_func: Literal["mean", "median"] = "mean",
+            iterations: int = 100,
+        ) -> float:
+        """Evaluate the model's performance on a user-provided dataset.
+
+        This method assesses the model using a specified evaluation metric 
+        by applying sliding windows to randomly shuffle the data. The result 
+        is calculated based on either Weighted Quantile Loss (WQL) or 
+        Weighted Absolute Percentage Error (WAPE).
+
+        Args:
+            arr (list): The input time series dataset to evaluate.
+            horizon (int): Prediction horizon length.
+            context_length (int): Time series data context length.
+            metric (Literal["WQL", "WAPE"]): Name of the metric.
+            aggr_func (Literal["mean", "median"]): Metric aggregation function.
+            iterations (int): Number of evaluation iterations.
+        """
+        MIN_SAMPLES = 1000
+
+        if len(arr) < MIN_SAMPLES:
+            raise ValueError(f"A minimum of {MIN_SAMPLES} is required")
+        
+        if iterations < 0:
+            raise ValueError(f"Number of iterations must be > 0")
+        
+        if not hasattr(np, aggr_func):
+            raise NotImplementedError(f"Unknown function {aggr_func}")
+        
+        arr = np.array(arr)
+
+        # Ensure there are at least 64 samples left
+        max_index = arr.shape[0] - horizon
+
+        args = {
+            "total": iterations,
+            "desc": f"Evaluating model {self.model_name}",
+            "unit_scale": True,
+            "unit": "B"
+        }
+        with tqdm(**args) as progress:
+            
+            scores = []
+            for _ in range(iterations):
+                
+                # Randomly sample the indices first
+                offset = context_length + horizon
+                idx = np.random.randint(0, max_index - offset)
+                indices = list(range(idx - context_length, idx))
+
+                # Randomly sample by prediction_length
+                sampled = arr[indices]
+
+                _, median, _ = self._call("forecast", sampled, horizon)
+
+                start, end = indices[-1], indices[-1] + horizon
+                actual = arr[start:end]
+
+                if metric == "WQL":
+                    quantiles = [0.1, 0.5, 0.9]
+                    score = weighted_quantile_loss(actual, median, quantiles)
+                elif metric == "WAPE":
+                    score = wape(actual, median)
+                else:
+                    raise NotImplementedError(f"Metric {metric} not supported")
+                
+                scores.append(score)
+                progress.update()
+        
+        return getattr(np, aggr_func)(scores)
 
     def forecast(
             self, 
-            dataset: Union["Dataset", pd.DataFrame],
+            dataset: Union[Dataset, pd.DataFrame],
             target: str = None,
             group_by: str = None,
             date: str = None,
@@ -630,7 +858,7 @@ class Model:
             horizon: int = 30,
             n_rows: int = None,
             **kwargs
-        ) -> List[List[float]]:
+        ) -> Union[Forecast, List[Forecast]]:
         """Forecast using the time series foundation model.
         
         Args:
@@ -669,30 +897,28 @@ class Model:
             dataset = dataset.sort_values(date)
 
             if frequency is not None:
-                dataset = self._resample_dataset(
-                    dataset, date, target, aggr, group_by, frequency
-                )
+                args = dataset, date, target, aggr, group_by, frequency
+                dataset = self._resample_dataset(*args)
         
-        # Group data by group_by if specified
-        if group_by is not None:
-            grouped = dataset.groupby(group_by)
-
-            forecasts = []
-            for _, group in grouped:
-                arr = group[target].values
-                if n_rows is not None:
-                    arr = arr[-n_rows:]
-
-                r = self._call("forecast", arr, horizon, **kwargs)
-                forecasts.append(r)
-            return forecasts
-        else:
+        if group_by is None:
             arr = dataset[target].values
             if n_rows is not None:
                 arr = arr[-n_rows:]
 
-            r = self._call("forecast", arr, **kwargs)
+            r = self._call("forecast", arr, horizon, **kwargs)
             return r
+
+        # Forecast on multiple time-series groups
+        forecasts = []
+        for _, group in dataset.groupby(group_by):
+            arr = group[target].values
+            if n_rows is not None:
+                arr = arr[-n_rows:]
+
+            r = self._call("forecast", arr, horizon, **kwargs)
+            forecasts.append(r)
+        
+        return forecasts
 
     def _resample_dataset(
             self, 
@@ -781,9 +1007,15 @@ class Model:
         r = self._client._api_request(f"/{task}", "post", json=body)
         if r.status_code == 426:
             raise SulieError(_UPGRADE_PLAN, "Too many requests, upgrade plan")
+        else:
+            r.raise_for_status()
         
-        r.raise_for_status()
-        return r.json()
+        if task == "embed":
+            return r.json()
+        
+        low, median, high = r.json()
+        forecast = Forecast(body["context"][0], low, median, high)
+        return forecast
 
 
 class FineTuneJob:
@@ -811,7 +1043,11 @@ class FineTuneJob:
             client (Sulie): API client.
             dataset_id (str): ID of the dataset the model will be fitted on.
             target (str): Name of the target value to forecast for.
+<<<<<<< HEAD
             group_by (str): Name of the column to group the series by.
+=======
+            group_by (str): Name of the series to group the dataset by.
+>>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
             description (str): Description of the fine-tune job.
 
         Returns:
@@ -854,4 +1090,8 @@ class FineTuneJob:
         endpoint = "/tune"
         r = client._api_request(endpoint, method="get")
         r.raise_for_status()
+<<<<<<< HEAD
         return [FineTuneJob(client, **job) for job in r.json()]
+=======
+        return [FineTuneJob(client, **job) for job in r.json()]
+>>>>>>> f4bf11f18e95dc1fca3943a2164f04c12fd5eeee
