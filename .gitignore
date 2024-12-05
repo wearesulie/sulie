@@ -6,3 +6,5 @@ __pycache__/
 **/__pycache__
 environment.yml
 app.py
+.DS_STORE
+**/.DS_STORE

@@ -59,7 +59,7 @@ With your API key ready, you’re set to start forecasting.
 To install the Sulie SDK, simply run:
 
 ```bash
-pip install sulie==1.0.6
+pip install sulie==1.0.7
 ```
 
 ## Quick Start Example
@@ -91,17 +91,19 @@ df = pd.DataFrame({
 # Forecast demand for each location over the next 24 hours
 forecast = client.forecast(
     dataset=df,
-    target='demand',
-    group_by='location',
-    date='timestamp',
+    target_col='demand',
+    id_col='location',
+    timestamp_col='timestamp',
     frequency='H',
-    horizon=24,            # Predict 24 hours ahead
-    num_samples=100        # Generate probabilistic forecasts
+    quantiles=[0.2, 0.8],
+    horizon=24            # Predict 24 hours ahead
 )
 print(forecast)
 ```
 
-The `Forecast` object includes three lists: `low`, `median`, and `high`, corresponding to different certainty levels in the predictions. These help you understand the range of possible outcomes, from conservative to optimistic.
+The `Forecast` object includes two properties: `median`  and `quantiles`, corresponding to different certainty levels in the predictions. These help you understand the range of possible outcomes, from conservative to optimistic.
+
+**If the `id_col` was set, `forecast` returns a list of `Forecast` objects.**
 
 You can also visualize the forecasts directly by calling the plot function:
 ```python
@@ -115,12 +117,11 @@ This quickly generates a chart showing the forecast ranges, making it easy to sp
 | Name          | Description                                              | Default     |
 |---------------|----------------------------------------------------------|-------------|
 | `dataset`     | A `Dataset` or `pd.DataFrame` containing time series data.| **Required**|
-| `target`      | Column name for the forecast variable.                    | **Required**|
-| `group_by`    | Column name to group data by (e.g., different locations). | `None`      |
-| `date`        | Timestamp column name.                                    | `None`      |
+| `target_col`      | Column name for the forecast variable.                    | **Required**|
+| `id_col`    | Column name for multiple time series IDs (e.g. locations). | `None`      |
+| `timestamp_col`        | Timestamp column name.                                    | `None`      |
 | `frequency`   | Frequency of the time series (e.g., `H` for hourly).      | `None`      |
 | `horizon`     | Time steps to forecast ahead.                             | `24`        |
-| `num_samples` | Number of probabilistic forecast samples.                 | `100`       |
 
 ### 2. Fine-Tuning for Customized Forecasting
 With automatic fine-tuning, you can optimize Mimosa for unique datasets and business cases. The fine-tuning process uses **Weighted Quantile Loss (WQL)** for evaluation, ensuring high accuracy.
@@ -129,7 +130,7 @@ With automatic fine-tuning, you can optimize Mimosa for unique datasets and busi
 # Fine-tune Mimosa on custom dataset
 fine_tune_job = client.fine_tune(
     dataset=df,
-    target="demand",
+    target_col="demand",
     description="Fine-tune for Plant A demand prediction"
 )
 
@@ -142,8 +143,8 @@ print(f"Job status: {fine_tune_job.status}")
 | Name          | Description                                         | Default |
 |---------------|-----------------------------------------------------|---------|
 | `dataset`     | A `Dataset` or `pd.DataFrame` with time series data.| Required|
-| `target`      | Target variable for optimization.                   | Required|
-| `group_by`    | Name of the column to group the DataFrame series by.| `None`  |
+| `target_col`      | Target variable for optimization.                   | Required|
+| `id_col`    | Name of the column to group the DataFrame series by.| `None`  |
 | `description` | Description of the fine-tuning job.                 | `None`  |
 
 Once fine-tuning completes, the model is automatically deployed and available for forecasting.
@@ -186,12 +187,11 @@ custom_model = client.get_model(model_name)
 # Forecast using the selected model
 forecast_custom = custom_model.forecast(
     dataset=df,
-    target='demand',
-    group_by='location',
-    date='timestamp',
+    target_col='demand',
+    id_col='location',
+    timestamp_col='timestamp',
     frequency='H',
-    horizon=24,
-    num_samples=50
+    horizon=24
 )
 print(forecast_custom)
 ```
