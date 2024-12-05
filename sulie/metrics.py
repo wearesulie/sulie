@@ -29,11 +29,11 @@ def wape(actual: np.ndarray, predicted: np.ndarray) -> float:
     """Calculate Weighted Absolute Percentage Error (WAPE).
     
     Args:
-        actual (array-like): Array of actual values
-        predicted (array-like): Array of predicted values
+        actual (array-like): Array of actual values.
+        predicted (array-like): Array of predicted values.
     
     Returns:
-        float: WAPE value as a percentage
+        float: WAPE value as a percentage.
     """
     if len(actual) != len(predicted):
         raise ValueError("Actual and predicted arrays must have the same length")

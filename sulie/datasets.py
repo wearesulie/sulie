@@ -2,7 +2,7 @@ import io
 import math
 import pandas as pd
 from .api import APIClient
-from .errors import _DATASET_NOT_FOUND, _UPLOAD_IN_PROGRESS, SulieError
+from .errors import DATASET_NOT_FOUND, UPLOAD_IN_PROGRESS, SulieError
 from typing import Any, Dict, Literal
 from tqdm import tqdm
 
@@ -64,7 +64,7 @@ class Dataset(pd.DataFrame):
         r = client.request("/datasets", method="get", params=params)
         if r.status_code == 404:
             detail = "Dataset %s does not exist" % name
-            raise SulieError(_DATASET_NOT_FOUND, detail)
+            raise SulieError(DATASET_NOT_FOUND, detail)
         
         return Dataset(client, **r.json()[0])
 
@@ -150,7 +150,7 @@ class Dataset(pd.DataFrame):
             upload = DatasetUpload.init(self._client, self.id, mode)
         else:
             detail = "Upload for dataset %s is already pending" % self.name
-            raise SulieError(_UPLOAD_IN_PROGRESS, detail)
+            raise SulieError(UPLOAD_IN_PROGRESS, detail)
             
         args = {
             "total": total_chunks,

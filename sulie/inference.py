@@ -4,8 +4,8 @@ import pandas as pd
 
 from .api import APIClient
 from .datasets import Dataset
+from .errors import MODEL_NOT_FOUND, INTERNAL_ERROR, UPGRADE_PLAN, SulieError
 from .metrics import wape, weighted_quantile_loss
-from .errors import _MODEL_NOT_FOUND, _UPGRADE_PLAN, SulieError
 from dataclasses import dataclass
 from pandas.tseries.frequencies import to_offset
 from typing import Any, List, Literal, Optional, Union
@@ -14,14 +14,7 @@ from tqdm import tqdm
 
 @dataclass
 class Forecast:
-    """A class for time series forecasting with confidence intervals.
-    
-    Attributes:
-        context (Sequence[Union[int, float]]): Historical time series data
-        median (Sequence[float]): Central tendency forecast values
-        quantiles (Sequence[float]): List of forecasted quantiles
-            First and last sequences are used as lower and upper bounds
-    """
+    """A class for time series forecasting with confidence intervals."""
     context: List[Union[int, float]]
     median: List[float]
     quantiles: List[List[float]]
@@ -137,14 +130,14 @@ class Model:
         }
         r = client.request(endpoint, method="get", params=params)
         if r.status_code == 404:
-            raise SulieError(_MODEL_NOT_FOUND, r.content.decode())
+            raise SulieError(MODEL_NOT_FOUND, r.content.decode())
         
         r.raise_for_status()
         return Model(client, model_name)
     
     def evaluate(
             self, 
-            arr: np.ndarray,
+            target: np.ndarray,
             horizon: int = 30,
             metric: Literal["WQL", "WAPE"] = "WQL",
             metric_aggregation: Literal["mean", "median"] = "mean",
@@ -158,7 +151,7 @@ class Model:
         Weighted Absolute Percentage Error (WAPE).
 
         Args:
-            arr (np.ndarray): The input time series dataset to evaluate.
+            target (np.ndarray): The input time series dataset to evaluate.
             horizon (int): Prediction horizon length.
             metric (Literal["WQL", "WAPE"]): Name of the metric.
             metric_aggregation (Literal["mean", "median"]): Function name.
@@ -166,11 +159,8 @@ class Model:
         """
         MIN_SAMPLES = 1000
 
-        if len(arr) < MIN_SAMPLES:
+        if len(target) < MIN_SAMPLES:
             raise ValueError(f"A minimum of {MIN_SAMPLES} is required")
-        
-        if arr.shape[0] > Model.MAX_CONTEXT_LEN:
-            raise ValueError(f"Maximum context length {Model.MAX_CONTEXT_LEN}")
         
         if iterations < 0:
             raise ValueError(f"Number of iterations must be > 0")
@@ -178,11 +168,14 @@ class Model:
         if not hasattr(np, metric_aggregation):
             raise NotImplementedError(f"Unknown function {metric_aggregation}")
         
+        if target.shape[0] > Model.MAX_CONTEXT_LEN:
+            target = target[-Model.MAX_CONTEXT_LEN:]
+
         # Length of the prediction context
-        context_length = arr.shape[0]
+        context_length = target.shape[0]
 
         # Ensure there are at least 64 samples left
-        max_index = arr.shape[0] - horizon
+        max_index = target.shape[0] - horizon
 
         args = {
             "total": iterations,
@@ -201,12 +194,12 @@ class Model:
                 indices = list(range(idx - context_length, idx))
 
                 # Randomly sample by prediction_length
-                sampled = arr[indices]
+                sampled = target[indices]
 
                 _, median, _ = self._call("forecast", sampled, horizon)
 
                 start, end = indices[-1], indices[-1] + horizon
-                actual = arr[start:end]
+                actual = target[start:end]
 
                 functions = {
                     "WQL": weighted_quantile_loss,
@@ -228,7 +221,7 @@ class Model:
             target_col: str = "y",
             horizon: int = 7,
             id_col: str = None,
-            timestamp_col: str = "timestamp",
+            timestamp_col: str = None,
             aggr: str = None,
             frequency: Literal["H", "D", "W", "M", "Y"] = "D",
             quantiles: List[float] = [0.1, 0.9]
@@ -270,9 +263,6 @@ class Model:
         if id_col and id_col not in dataset.columns:
             raise KeyError(f"ID column {id_col} not found in dataset")
         
-        if len(dataset) > Model.MAX_CONTEXT_LEN:
-            raise ValueError(f"Maximum input length {Model.MAX_CONTEXT_LEN}")
-        
         if timestamp_col:
             if timestamp_col not in dataset.columns:
                 detail = f"Timestamp column {timestamp_col} not in dataset"
@@ -295,7 +285,7 @@ class Model:
                 )
         
         if id_col is None:
-            series = dataset[target_col].values
+            series = [dataset[target_col].values]
         else:
             series = []
             for _, group in dataset.groupby(id_col):
@@ -321,9 +311,9 @@ class Model:
         Args:
             dataset (Dataset): Dataset or pd.Dataframe with time series data.
             timestamp_col (str): Name of the date and time column.
-            target (str): Name of the target variable column.
+            target_col (str): Name of the target variable column.
             aggr (str): Aggregation function.
-            group_by (str): Name of the grouping column.
+            id_col (str): Name of the grouping column.
             frequency (str): Desired resampling frequency.
         
         Returns:
@@ -376,23 +366,23 @@ class Model:
         for idx, Y in enumerate(series):
             nr_samples = Y.shape[0]
             if nr_samples > Model.MAX_CONTEXT_LEN:
-                msg = f"Context length {nr_samples} > {Model.MAX_CONTEXT_LEN}"
-                raise ValueError(msg)
-            else:
-                series[idx] = Y.tolist()
+                Y = Y[-Model.MAX_CONTEXT_LEN:]
+            
+            series[idx] = Y.tolist()
 
         body = {
             "model_name": self.model_name,
             "context": series,
             "task": task,
-            "prediction_length": horizon
+            "prediction_length": horizon,
+            "sdk_version": "1.0.7"
         }
 
         r = self._client.request(f"/{task}", "post", json=body)
         if r.status_code == 426:
-            raise SulieError(_UPGRADE_PLAN, "Too many requests, upgrade plan")
-        else:
-            r.raise_for_status()
+            raise SulieError(UPGRADE_PLAN, "Too many requests, upgrade plan")
+        elif r.status_code >= 400:
+            raise SulieError(INTERNAL_ERROR, r.content.decode())
 
         body = r.json()    
         if task == "embed":
@@ -403,4 +393,4 @@ class Model:
             forecast = Forecast(series[idx], median, quantiles)
             forecasts.append(forecast)
 
-        return forecasts
+        return forecasts if len(forecasts) > 1 else forecasts[0]

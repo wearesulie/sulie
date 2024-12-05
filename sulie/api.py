@@ -8,7 +8,6 @@ class APIClient:
         """Initialize an API client."""
         self.api_url = api_url
         self.api_key = api_key
-
         self._caller = self._validate_api_key()["organization_id"]
 
     def _validate_api_key(self):

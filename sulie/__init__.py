@@ -6,7 +6,7 @@ import uuid
 
 from .api import APIClient
 from .datasets import Dataset, UploadModes
-from .errors import _DATASET_NOT_FOUND, SulieError
+from .errors import DATASET_NOT_FOUND, SulieError
 from .inference import Model, Forecast
 from .tuning import FineTuneJob
 from typing import Optional, List, Any, Literal, Union
@@ -36,14 +36,19 @@ class Sulie:
             ValueError: If no API key is provided or found in environment
         """
         api_url = os.environ.get("SULIE_API_URL") or _DEFAULT_API_URL
+        
         api_key = api_key or os.environ.get("SULIE_API_KEY")
+        if api_key is None:
+            raise ValueError("Unspecified `api_key` configuration")
+        
         self._client = APIClient(api_url, api_key)
 
     def list_datasets(self) -> List[Dataset]:
-        """List available datasets for the authenticated organization.
+        """List available datasets for the organization the API key is 
+        associated with.
 
         Returns:
-            List[Dataset]: Collection of available datasets
+            List[Dataset]: Collection of available datasets.
         """
         r = self._client.request("/datasets", "get")
         r.raise_for_status()
@@ -59,13 +64,13 @@ class Sulie:
         """Retrieve a specific dataset by name.
 
         Args:
-            name (str): Name of the dataset to retrieve
+            name (str): Name of the dataset to retrieve.
 
         Returns:
-            Dataset: Requested dataset
+            Dataset: Requested dataset.
 
         Raises:
-            SulieError: If dataset not found
+            SulieError: If dataset not found.
         """
         dataset = Dataset.get(self._client, name)
         return dataset
@@ -75,7 +80,6 @@ class Sulie:
             df: pd.DataFrame,
             name: str, 
             mode: UploadModes = "append", 
-            storage: Literal["empheral", "persisted"] = "persisted",
             **kwargs
         ) -> Dataset:
         """Upload a dataframe as a new dataset or append to existing one.
@@ -83,8 +87,7 @@ class Sulie:
         Args:
             df (pd.DataFrame): Data to upload
             name (str): Name for the dataset
-            mode (UploadModes): How to handle existing data, default "append"
-            storage (Literal["empheral", "persisted"]): Storage type
+            mode (UploadModes): How to handle existing data, default "append".
             **kwargs: Additional arguments like description
 
         Returns:
@@ -93,39 +96,42 @@ class Sulie:
         try:
             dataset: Dataset = Dataset.get(self._client, name)
         except SulieError as e:
-            if e.code != _DATASET_NOT_FOUND:
+            if e.code != DATASET_NOT_FOUND:
                 raise
+            
             desc = kwargs.get("description")
+            storage = kwargs.get("storage", "persisted")
+
             dataset = Dataset.create(self._client, name, desc, mode=storage)
         finally:
             dataset.upload(df, mode)
             return dataset
 
     def list_custom_models(self) -> List[Model]:
-        """List available custom and fine-tuned models.
+        """List custom fine-tuned models.
 
         Returns:
-            List[Model]: Collection of available custom models
+            List[Model]: Collection of available custom models.
         """
         return Model.list(self._client)
 
     def get_model(self, model_name: str) -> Model:
-        """Retrieve a specific model by name.
+        """Retrieve a specific custom model by name.
 
         Args:
-            model_name (str): Name of the model to retrieve
+            model_name (str): Name of the model.
 
         Returns:
-            Model: Requested model
+            Model: Requested model.
 
         Raises:
-            SulieError: If model not found
+            SulieError: If model not found.
         """
         return Model.get(self._client, model_name)
 
     def evaluate(
             self, 
-            arr: List[Union[float, int]],
+            target: List[Union[float, int]],
             horizon: int = 30,
             metric: Literal["WQL", "WAPE"] = "WQL",
             metric_aggregation: Literal["mean", "median"] = "mean",
@@ -135,7 +141,7 @@ class Sulie:
         """Evaluate model performance on time series data.
 
         Args:
-            arr (List[Union[float, int]]): Input time series data
+            target (List[Union[float, int]]): Input time series data.
             horizon (int): Number of future steps to predict
             metric (Literal["WQL", "WAPE"]): Evaluation metric
             metric_aggregation (Literal["mean", "median"]): How to aggregate
@@ -146,8 +152,14 @@ class Sulie:
             float: Aggregated evaluation score
         """
         model: Model = model or Model(self._client)
-        r = model.evaluate(arr, horizon, metric, metric_aggregation, iterations)
-        return r
+        score = model.evaluate(
+            target=target,
+            horizon=horizon,
+            metric=metric,
+            metric_aggregation=metric_aggregation,
+            iterations=iterations
+        )
+        return score
 
     def forecast(
             self, 
@@ -155,7 +167,7 @@ class Sulie:
             target_col: str = "y",
             horizon: int = 7,
             id_col: Optional[str] = None,
-            timestamp_col: str = "timestamp",
+            timestamp_col: str = None,
             aggr: Optional[str] = None,
             frequency: Literal["H", "D", "W", "M", "Y"] = "D",
             model: Optional[Model] = None,
@@ -164,28 +176,28 @@ class Sulie:
         """Generate probabilistic forecasts using time series model.
 
         Args:
-            dataset (Union[Dataset, pd.DataFrame]): Input time series data
-            target_col (str): Column containing values to forecast
-            horizon (int): Number of future steps to predict
-            id_col (str, optional): Column for multiple time series IDs
-            timestamp_col (str): Column containing timestamps
-            aggr (str, optional): Temporal aggregation function
-            frequency (Literal["H","D","W","M","Y"]): Time step frequency
-            model (Model, optional): Model to use, defaults to base model
-            quantiles (List[float]): Probability levels for intervals
+            dataset (Union[Dataset, pd.DataFrame]): Input time series data.
+            target_col (str): Column containing values to forecast.
+            horizon (int): Number of future steps to predict.
+            id_col (str, optional): Column for multiple time series IDs.
+            timestamp_col (str): Column containing timestamps.
+            aggr (str, optional): Temporal aggregation function.
+            frequency (Literal["H","D","W","M","Y"]): Time step frequency.
+            model (Model, optional): Model to use, defaults to base model.
+            quantiles (List[float]): Probability levels for intervals.
 
         Returns:
-            Union[Forecast, List[Forecast]]: Forecasts for each series
+            Union[Forecast, List[Forecast]]: Forecasts for each series.
 
         Raises:
-            ValueError: If timestamp_col specified but aggr is None
-            ValueError: If specified columns not found in dataset
-            ValueError: If frequency is invalid
+            ValueError: If timestamp_col specified but aggr is None.
+            ValueError: If specified columns not found in dataset.
+            ValueError: If frequency is invalid.
         """
         model: Model = model or Model(self._client)
         r = model.forecast(
             dataset=dataset, 
-            target=target_col, 
+            target_col=target_col, 
             id_col=id_col, 
             timestamp_col=timestamp_col, 
             aggr=aggr, 
@@ -203,11 +215,11 @@ class Sulie:
         """Extract embeddings from time series data.
 
         Args:
-            arr (np.ndarray): Input time series data (1D or 2D array)
-            model (Model, optional): Model to use, defaults to base model
+            arr (np.ndarray): Input time series data (1D or 2D array).
+            model (Model, optional): Model to use, defaults to base model.
 
         Returns:
-            List[Any]: Extracted embeddings
+            List[Any]: Extracted embeddings.
         """
         model: Model = model or Model(self._client)
         r = model.embed(arr)
@@ -220,7 +232,7 @@ class Sulie:
             id_col: Optional[str] = None,
             description: Optional[str] = None
         ) -> FineTuneJob:
-        """Create a new fine-tuning job for the model.
+        """Create a new fine-tuning job for the model based on a custom dataset.
 
         Args:
             dataset (Union[Dataset, pd.DataFrame]): Training data.
@@ -229,11 +241,11 @@ class Sulie:
             description (str, optional): Description of fine-tuning job.
 
         Returns:
-            FineTuneJob: Created fine-tuning job
+            FineTuneJob: Created fine-tuning job.
 
         Raises:
-            ValueError: If dataset has fewer than 1000 samples
-            KeyError: If target column not found in dataset
+            ValueError: If dataset has fewer than 1000 samples.
+            KeyError: If target column not found in dataset.
         """
         if isinstance(dataset, Dataset) and dataset.empty is True:
             dataset.load()
@@ -259,7 +271,7 @@ class Sulie:
 
         # Start the fine-tune job
         job = FineTuneJob.fit(
-            client=self, 
+            client=self._client, 
             dataset_id=train_dataset.id, 
             target=target_col, 
             group_by=id_col, 
@@ -271,6 +283,6 @@ class Sulie:
         """List all fine-tuning jobs for the organization.
 
         Returns:
-            List[FineTuneJob]: Collection of fine-tuning jobs
+            List[FineTuneJob]: Collection of fine-tuning jobs.
         """
         return FineTuneJob.list(self._client)
