@@ -14,7 +14,11 @@
   <a href="https://pypi.org/project/sulie/">
     <img src="https://img.shields.io/pypi/v/sulie.svg" alt="PyPI Badge">
   </a>
+  <a href="https://colab.research.google.com/drive/1rHCKJJbPC42oMI7Bf5-38eC4KtbDcVJ_?usp=sharing">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Google Colab">
+  </a>
 </p>
+
 
 ### Sulie - Foundation Models for Time-Series Forecasting
 
