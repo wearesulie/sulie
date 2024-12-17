@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import random
 
 from .api import APIClient
 from .datasets import Dataset
 from .errors import MODEL_NOT_FOUND, INTERNAL_ERROR, UPGRADE_PLAN, SulieError
-from .metrics import wape, weighted_quantile_loss
+from .metrics import mae, wape, weighted_quantile_loss
+from .utils import array_split
 from dataclasses import dataclass
 from pandas.tseries.frequencies import to_offset
 from typing import Any, List, Literal, Optional, Union
@@ -85,6 +87,9 @@ class Model:
     # Maximum prediction length
     MAX_PREDICTION_LEN: int = 64
 
+    # Maximum number of groups to forecast on in a single pass
+    MAX_NGROUPS: int = 100
+
     def __init__(
             self, 
             client: APIClient, 
@@ -137,9 +142,11 @@ class Model:
     
     def evaluate(
             self, 
-            target: np.ndarray,
+            dataset: Union[Dataset, pd.DataFrame],
+            target_col: str,
             horizon: int = 30,
-            metric: Literal["WQL", "WAPE"] = "WQL",
+            id_col: str = None,
+            metric: Literal["MAE", "WQL", "WAPE"] = "MAE",
             metric_aggregation: Literal["mean", "median"] = "mean",
             iterations: int = 100,
         ) -> float:
@@ -151,15 +158,17 @@ class Model:
         Weighted Absolute Percentage Error (WAPE).
 
         Args:
-            target (np.ndarray): The input time series dataset to evaluate.
-            horizon (int): Prediction horizon length.
-            metric (Literal["WQL", "WAPE"]): Name of the metric.
+            dataset (Union[Dataset, pd.DataFrame]): Input dataset to forecast on.
+            target_col (str): Target column to forecast.
+            horizon (int): Number of future steps to predict.
+            id_col (str, optional): Column for multiple time series IDs.
+            metric (Literal["MAE", "WQL", "WAPE"]): Name of the metric.
             metric_aggregation (Literal["mean", "median"]): Function name.
             iterations (int): Number of evaluation iterations.
         """
-        MIN_SAMPLES = 1000
+        MIN_SAMPLES = 64
 
-        if len(target) < MIN_SAMPLES:
+        if target_col not in dataset:
             raise ValueError(f"A minimum of {MIN_SAMPLES} is required")
         
         if iterations < 0:
@@ -168,14 +177,19 @@ class Model:
         if not hasattr(np, metric_aggregation):
             raise NotImplementedError(f"Unknown function {metric_aggregation}")
         
-        if target.shape[0] > Model.MAX_CONTEXT_LEN:
-            target = target[-Model.MAX_CONTEXT_LEN:]
+        # Validate target shape
+        if id_col is not None:
+            groups = []
+            for _, group in dataset.groupby(id_col):
+                if group.shape[0] >= MIN_SAMPLES:
+                    groups.append(group)
 
-        # Length of the prediction context
-        context_length = target.shape[0]
-
-        # Ensure there are at least 64 samples left
-        max_index = target.shape[0] - horizon
+            # Reconstruct DataFrame with only valid groups
+            dataset = pd.concat(groups)
+        else:
+            if dataset.shape[0] < MIN_SAMPLES:
+                detail = f"Dataset must have at least {MIN_SAMPLES} samples"
+                raise ValueError(detail)
 
         args = {
             "total": iterations,
@@ -187,28 +201,61 @@ class Model:
             
             scores = []
             for _ in range(iterations):
+                # Get the target array based on id_col if provided
+                if id_col is not None:
+                    selected_group = random.choice(dataset[id_col].unique())
+                    target_arr = dataset[
+                        dataset[id_col] == selected_group
+                    ][target_col]
+                else:
+                    target_arr = dataset[target_col]
                 
-                # Randomly sample the indices first
-                offset = context_length + horizon
-                idx = np.random.randint(0, max_index - offset)
-                indices = list(range(idx - context_length, idx))
+                # Calculate available length considering horizon
+                nr_samples = target_arr.shape[0] - horizon
+                
+                # Skip this iteration if we don't have enough samples
+                if nr_samples < MIN_SAMPLES:
+                    progress.update()
+                    continue 
+                
+                # Determine context length
+                max_possible_context = min(nr_samples, self.MAX_CONTEXT_LEN)
+                rand_context_length = random.randint(
+                    MIN_SAMPLES, max_possible_context
+                )
+                context_length = min(max_possible_context, rand_context_length)
+                
+                # Calculate valid start index range
+                max_start_idx = nr_samples - context_length
+                
+                # Skip if we can't find a valid window
+                if max_start_idx < 0:
+                    progress.update()
+                    continue 
+                
+                # Randomly select start index and generate indices
+                start_idx = random.randint(0, max_start_idx)
+                indices = list(range(start_idx, start_idx + context_length))
 
                 # Randomly sample by prediction_length
-                sampled = target[indices]
-
-                _, median, _ = self._call("forecast", sampled, horizon)
+                sampled = np.nan_to_num(target_arr.values[indices], nan=0)
+                if isinstance(sampled, np.ndarray) and len(sampled.shape) == 1:
+                    sampled = [sampled]
+                    
+                forecast = self._call("forecast", sampled, horizon)
 
                 start, end = indices[-1], indices[-1] + horizon
-                actual = target[start:end]
+                actual = target_arr[start:end]
 
                 functions = {
+                    "MAE": mae,
                     "WQL": weighted_quantile_loss,
                     "WAPE": wape
                 }
                 if metric not in functions:
                     raise NotImplementedError(f"Metric {metric} not supported")
                 
-                score = functions[metric](actual, median) 
+                score = functions[metric](actual, forecast.median) 
                 scores.append(score)
 
                 progress.update()
@@ -223,7 +270,7 @@ class Model:
             id_col: str = None,
             timestamp_col: str = None,
             aggr: str = None,
-            frequency: Literal["H", "D", "W", "M", "Y"] = "D",
+            frequency: Literal["H", "D", "W", "M", "Y"] = None,
             quantiles: List[float] = [0.1, 0.9]
         ) -> Union[Forecast, List[Forecast]]:
         """Generate probabilistic forecasts using the foundation model.
@@ -267,14 +314,14 @@ class Model:
             if timestamp_col not in dataset.columns:
                 detail = f"Timestamp column {timestamp_col} not in dataset"
                 raise KeyError(detail)
-        
-            if aggr is None:
-                raise ValueError("Aggregation function `aggr` required")
             
             dataset[timestamp_col] = pd.to_datetime(dataset[timestamp_col])
             dataset = dataset.sort_values(timestamp_col)
 
             if frequency is not None:
+                if aggr is None:
+                    raise ValueError("Aggregation function `aggr` required")
+            
                 dataset = self._resample_dataset(
                     dataset=dataset,
                     timestamp_col=timestamp_col,
@@ -287,14 +334,23 @@ class Model:
         if id_col is None:
             series = [dataset[target_col].values]
         else:
+            groups = dataset.groupby(id_col)
+
             series = []
-            for _, group in dataset.groupby(id_col):
+            for _, group in groups:
                 if timestamp_col is not None:
                     group = group.sort_values(timestamp_col)
                 
                 series.append(group[target_col].values)
 
-        r = self._call("forecast", series, horizon, quantiles)
+        if len(series) < Model.MAX_NGROUPS:
+            return self._call("forecast", series, horizon, quantiles)
+        
+        # Optionaly forecast in batches
+        r = []
+        for batch in array_split(series, n=100):
+            r += self._call("forecast", batch, horizon, quantiles)
+        
         return r
 
     def _resample_dataset(
@@ -363,11 +419,20 @@ class Model:
         if horizon > Model.MAX_PREDICTION_LEN:
             raise ValueError("Prediction length maximum is 64 data points")
         
+        if len(series) == 0:
+            raise ValueError("At least 1 series is required")
+        
+        # Determine smallest series
+        min_n_rows = series[0].shape[0]
         for idx, Y in enumerate(series):
-            nr_samples = Y.shape[0]
-            if nr_samples > Model.MAX_CONTEXT_LEN:
-                Y = Y[-Model.MAX_CONTEXT_LEN:]
-            
+            if Y.shape[0] < min_n_rows:
+                min_n_rows = Y.shape[0]
+
+        if min_n_rows > Model.MAX_CONTEXT_LEN:
+            min_n_rows = Model.MAX_CONTEXT_LEN
+
+        for idx, Y in enumerate(series):
+            Y = Y[-min_n_rows:]
             series[idx] = Y.tolist()
 
         body = {
@@ -375,7 +440,7 @@ class Model:
             "context": series,
             "task": task,
             "prediction_length": horizon,
-            "sdk_version": "1.0.7"
+            "sdk_version": "1.0.8"
         }
 
         r = self._client.request(f"/{task}", "post", json=body)

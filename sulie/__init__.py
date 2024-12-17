@@ -11,7 +11,7 @@ from .inference import Model, Forecast
 from .tuning import FineTuneJob
 from typing import Optional, List, Any, Literal, Union
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 
 logger = logging.getLogger("sulie")
 
@@ -131,8 +131,10 @@ class Sulie:
 
     def evaluate(
             self, 
-            target: List[Union[float, int]],
+            dataset: Union[Dataset, pd.DataFrame],
+            target_col: str,
             horizon: int = 30,
+            id_col: str = None,
             metric: Literal["WQL", "WAPE"] = "WQL",
             metric_aggregation: Literal["mean", "median"] = "mean",
             iterations: int = 100,
@@ -141,8 +143,10 @@ class Sulie:
         """Evaluate model performance on time series data.
 
         Args:
-            target (List[Union[float, int]]): Input time series data.
-            horizon (int): Number of future steps to predict
+            dataset (Union[Dataset, pd.DataFrame]): Input dataset to forecast on.
+            target_col (str): Target column to forecast.
+            horizon (int): Number of future steps to predict.
+            id_col (str, optional): Column for multiple time series IDs.
             metric (Literal["WQL", "WAPE"]): Evaluation metric
             metric_aggregation (Literal["mean", "median"]): How to aggregate
             iterations (int): Number of evaluation runs
@@ -153,8 +157,10 @@ class Sulie:
         """
         model: Model = model or Model(self._client)
         score = model.evaluate(
-            target=target,
+            dataset=dataset,
+            target_col=target_col,
             horizon=horizon,
+            id_col=id_col,
             metric=metric,
             metric_aggregation=metric_aggregation,
             iterations=iterations
@@ -169,7 +175,7 @@ class Sulie:
             id_col: Optional[str] = None,
             timestamp_col: str = None,
             aggr: Optional[str] = None,
-            frequency: Literal["H", "D", "W", "M", "Y"] = "D",
+            frequency: Literal["H", "D", "W", "M", "Y"] = None,
             model: Optional[Model] = None,
             quantiles: List[float] = [0.1, 0.9]
         ) -> Union[Forecast, List[Forecast]]:

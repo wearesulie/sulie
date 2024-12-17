@@ -44,3 +44,18 @@ def wape(actual: np.ndarray, predicted: np.ndarray) -> float:
     wape = np.sum(np.abs(actual - predicted)) / np.sum(np.abs(actual)) * 100
     
     return wape
+
+
+def mae(actuals: np.ndarray, forecasts: np.ndarray) -> float:
+    """
+    Calculate the Mean Absolute Error (MAE) between actual and forecasted values.
+
+    Args:
+        actuals (np.ndarray): The actual observed values.
+        forecasts (np.ndarray): The forecasted values.
+
+    Returns:
+        float: The Mean Absolute Error (MAE).
+    """
+    absolute_errors = np.abs(actuals - forecasts)
+    return np.mean(absolute_errors)

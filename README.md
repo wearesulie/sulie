@@ -63,7 +63,7 @@ With your API key ready, you’re set to start forecasting.
 To install the Sulie SDK, simply run:
 
 ```bash
-pip install sulie==1.0.7
+pip install sulie==1.0.8
 ```
 
 ## Quick Start Example
